@@ -45,5 +45,5 @@ class NullRelatedFilterSpec(RelatedFilterSpec):
 
 
 FilterSpec.filter_specs.insert(0,
-    (lambda f: isinstance(f, models.ForeignKey) and getattr(f, "null_related_filter", False), NullRelatedFilterSpec)
+    (lambda f: isinstance(f, models.ForeignKey) and f.null, NullRelatedFilterSpec)
 )
