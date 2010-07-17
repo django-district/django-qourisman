@@ -4,6 +4,14 @@ from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.admin.options import ModelAdmin, HORIZONTAL, VERTICAL
 from django.contrib.admin.options import StackedInline, TabularInline
 
+CONTRIB_APPS = [
+    'django.contrib.auth',
+    'django.contrib.comments',
+    'django.contrib.flatpages',
+    'django.contrib.redirects',
+    'django.contrib.sites',
+    ]
+
 def autodiscover():
     """
     Auto-discover INSTALLED_APPS admin.py modules and fail silently when
@@ -21,7 +29,10 @@ def autodiscover():
         # Attempt to import the app's admin module.
         try:
             before_import_registry = copy.copy(site._registry)
-            import_module('%s.admin' % app)
+            if app in CONTRIB_APPS:
+                import_module('qourisman.contrib.%s' % app.split('.')[2])
+            else:
+                import_module('%s.admin' % app)
         except:
             # Reset the model registry to the state before the last import as
             # this import will have to reoccur on the next request and this
