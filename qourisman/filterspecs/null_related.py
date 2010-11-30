@@ -43,7 +43,20 @@ class NullRelatedFilterSpec(RelatedFilterSpec):
                 'display': val
             }
 
+    @classmethod
+    def can_handle_field(cls, f):
+        if not isinstance(f, models.ForeignKey) or not f.null:
+            return False
+
+        if getattr(f, "null_related_filter", False):
+            return True
+
+        return getattr(settings, "QOURISMAN_GLOBAL_NULL_RELATED_FILTER", True)
+
 
 FilterSpec.filter_specs.insert(0,
-    (lambda f: isinstance(f, models.ForeignKey) and f.null, NullRelatedFilterSpec)
+    (NullRelatedFilterSpec.can_handle_field, NullRelatedFilterSpec)
+)
+
+FilterSpec.filter_specs.insert(0,
 )
