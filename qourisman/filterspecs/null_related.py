@@ -1,7 +1,43 @@
-from django.utils.encoding import smart_unicode
+from django.conf import settings
 from django.contrib.admin.filterspecs import FilterSpec, RelatedFilterSpec
-from django.utils.translation import ugettext_lazy as _
 from django.db import models
+from django.utils.encoding import smart_unicode
+from django.utils.translation import ugettext_lazy as _
+
+
+class NullValueFilter(RelatedFilterSpec):
+    """
+    This avoids the performance anti-pattern of displaying a large number of
+    choices when all you need is a simple defined/undefined check
+    """
+
+    def __init__(self, f, request, params, model, model_admin):
+        super(NullValueFilter, self).__init__(f, request, params, model,
+                                                model_admin)
+        self.lookup_kwarg = '%s__isnull' % f.name
+        self.lookup_val = request.GET.get(self.lookup_kwarg, None)
+
+    def has_output(self):
+        return True
+
+    def choices(self, cl):
+        yield {
+            'selected': self.lookup_val is None,
+            'query_string': cl.get_query_string({}, [self.lookup_kwarg]),
+            'display': _('All')
+        }
+
+        yield {
+            'selected': self.lookup_val == "False",
+            'query_string': cl.get_query_string({self.lookup_kwarg: False}, [self.lookup_kwarg]),
+            'display': _('Assigned')
+        }
+
+        yield {
+            'selected': self.lookup_val == "True",
+            'query_string': cl.get_query_string({self.lookup_kwarg: True}, [self.lookup_kwarg]),
+            'display': _('Unassigned')
+        }
 
 
 class NullRelatedFilterSpec(RelatedFilterSpec):
@@ -59,4 +95,5 @@ FilterSpec.filter_specs.insert(0,
 )
 
 FilterSpec.filter_specs.insert(0,
+    (lambda f: getattr(f, "null_value_filter", False), NullValueFilter)
 )
