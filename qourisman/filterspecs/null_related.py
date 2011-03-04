@@ -11,9 +11,9 @@ class NullValueFilter(RelatedFilterSpec):
     choices when all you need is a simple defined/undefined check
     """
 
-    def __init__(self, f, request, params, model, model_admin):
+    def __init__(self, f, request, params, model, model_admin, *args, **kwargs):
         super(NullValueFilter, self).__init__(f, request, params, model,
-                                                model_admin)
+                                                model_admin, *args, **kwargs)
         self.lookup_kwarg = '%s__isnull' % f.name
         self.lookup_val = request.GET.get(self.lookup_kwarg, None)
 
@@ -48,8 +48,9 @@ class NullRelatedFilterSpec(RelatedFilterSpec):
     Based on the snippet at http://djangosnippets.org/snippets/1963/
     """
 
-    def __init__(self, f, request, params, model, model_admin):
-        super(NullRelatedFilterSpec, self).__init__(f, request, params, model, model_admin)
+    def __init__(self, f, request, params, model, model_admin, *args, **kwargs):
+        super(NullRelatedFilterSpec, self).__init__(f, request, params, model,
+                model_admin, *args, **kwargs)
         self.lookup_choices = f.get_choices(include_blank=False)
         self.lookup_null_kwarg = '%s__isnull' % f.name
         self.lookup_null = request.GET.get(self.lookup_null_kwarg, False)
