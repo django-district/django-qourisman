@@ -79,7 +79,6 @@ class NullChoicesFilterSpec(ChoicesFilterSpec):
 
     @classmethod
     def can_handle_field(cls, f):
-        print f.name
         return getattr(f, "null_choices_filter", False)
 
 
