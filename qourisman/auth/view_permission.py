@@ -30,10 +30,7 @@ Installation:
     view_permission.register_model(MyModel)
 """
 
-from functools import wraps
-
 from django.conf import settings
-from django.contrib.auth.models import User
 
 
 def register_model(model_class):
@@ -42,7 +39,7 @@ def register_model(model_class):
     )
 
 
-def register_admin(model_admin):
+class ViewPermissionMixin(object):
     """
     Update the provided ModelAdmin class to support view permissions
 
@@ -61,75 +58,39 @@ def register_admin(model_admin):
             permissions.
     """
 
-    old_has_change_permission = model_admin.has_change_permission
+    GLOBAL_STAFF_VIEW = getattr(settings, 'QOURISMAN_STAFF_GLOBAL_VIEW', [])
 
-    global_staff_view = getattr(settings, "QOURISMAN_STAFF_GLOBAL_VIEW", [])
-
-    if any(global_staff_view):
-        # Monkeypatch the User class so we can make has_module_perms work:
-        old_has_module_perms = User.has_module_perms
-
-        @wraps(old_has_module_perms)
-        def new_has_module_perms(self, app_label):
-            if not self.is_staff:
-                return False
-
-            if app_label in global_staff_view:
-                return True
-            else:
-                return old_has_module_perms(self, app_label)
-
-        User.has_module_perms = new_has_module_perms
-
-    @wraps(old_has_change_permission)
-    def new_has_change_permission(self, request, obj=None):
-        res = old_has_change_permission(self, request, obj)
+    def has_change_permission(self, request, obj=None):
+        res = super(ViewPermissionMixin, self).has_change_permission(request, obj)
 
         if res:
             return True
 
-        if request.method != "GET":
+        if request.method != 'GET':
             return False
 
         if not request.user.is_staff:
             return False
 
-        if self.opts.app_label in global_staff_view:
+        if self.opts.app_label in self.GLOBAL_STAFF_VIEW:
             return True
 
         return request.user.has_perm('%s.can_view' % self.opts.app_label)
 
-    model_admin.has_change_permission = new_has_change_permission
+    def get_model_perms(self, request):
+        perms = super(ViewPermissionMixin, self).get_model_perms(request)
 
-    old_get_model_perms = model_admin.get_model_perms
-
-    @wraps(old_get_model_perms)
-    def new_get_model_perms(self, request):
-        perms = old_get_model_perms(self, request)
-
-        perms['view'] = (request.method == "GET"
-            and request.user.is_staff
-            and (self.opts.app_label in global_staff_view
-                or request.user.has_perm('%s.can_view' % self.opts.app_label)))
+        perms['view'] = (request.method == 'GET' and request.user.is_staff
+                         and (self.opts.app_label in self.GLOBAL_STAFF_VIEW
+                              or request.user.has_perm('%s.can_view' % self.opts.app_label)))
 
         return perms
 
-    model_admin.get_model_perms = new_get_model_perms
+    def render_change_form(self, request, context, obj=None, *args, **kwargs):
+        res = super(ViewPermissionMixin, self).render_change_form(request, context, obj=obj, *args, **kwargs)
 
-
-    from django.shortcuts import render_to_response
-    from django.utils.safestring import mark_safe
-    from django import template
-    from django.contrib.contenttypes.models import ContentType
-
-    old_render_change_form = model_admin.render_change_form
-
-    @wraps(old_render_change_form)
-    def new_render_change_form(self, request, context, obj=None, *args, **kwargs):
-        res = old_render_change_form(self, request, context, *args, **kwargs)
         res.context_data.update({
-            'has_change_permission': old_has_change_permission(self, request, obj)
+            'has_change_permission': self.has_change_permission(request, obj)
         })
-        return res
 
-    model_admin.render_change_form = new_render_change_form
+        return res
