@@ -1,6 +1,6 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_modify admin_modify_view_permission adminmedia %}
-{% load url from future %}
+{% load i18n admin_modify admin_modify_view_permission admin_static %}
+{% load url %}
 
 {% block extrahead %}{{ block.super }}
 {% url 'admin:jsi18n' as jsi18nurl %}
